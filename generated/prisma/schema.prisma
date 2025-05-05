@@ -1,0 +1,92 @@
+model Form {
+  id          String         @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  isActive    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+  user        User           @relation(fields: [userId], references: [id])
+  elements    FormElement[]
+  responses   FormResponse[]
+}
+
+model FormElement {
+  id          String          @id @default(uuid())
+  formId      String
+  elementUuid String          @unique
+  type        String
+  label       String
+  isRequired  Boolean         @default(false)
+  position    Int
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+  options     ElementOption[]
+  answers     FormAnswer[]
+  form        Form            @relation(fields: [formId], references: [id])
+}
+
+model ElementOption {
+  id            String      @id @default(uuid())
+  formElementId String
+  label         String
+  value         String
+  position      Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+  formElement   FormElement @relation(fields: [formElementId], references: [id])
+}
+
+model FormResponse {
+  id        String       @id @default(uuid())
+  formId    String
+  createdAt DateTime     @default(now())
+  answers   FormAnswer[]
+  form      Form         @relation(fields: [formId], references: [id])
+}
+
+model FormAnswer {
+  id             String       @id @default(uuid())
+  formResponseId String
+  elementId      String
+  value          String
+  createdAt      DateTime     @default(now())
+  element        FormElement  @relation(fields: [elementId], references: [id])
+  formResponse   FormResponse @relation(fields: [formResponseId], references: [id])
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String       @id @default(uuid())
+  name       String
+  email      String       @unique
+  password   String
+  verifiedAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deletedAt  DateTime?
+  form       Form[]
+  profile    UserProfile?
+}
+
+model UserProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  profileImageUrl String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  user            User      @relation(fields: [userId], references: [id])
+}

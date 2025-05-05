@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: nestjs
+      POSTGRES_DB: api
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
@@ -28,9 +28,15 @@ services:
                cd /app &&
                npx prisma studio --hostname 0.0.0.0"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/nestjs?schema=public
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/api?schema=public
     depends_on:
       - postgres
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   postgres_data:
