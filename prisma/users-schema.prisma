@@ -9,6 +9,7 @@ model User {
   deletedAt  DateTime?
   form       Form[]
   profile    UserProfile?
+  role       Role         @default(USER)
 }
 
 model UserProfile {
@@ -19,4 +20,9 @@ model UserProfile {
   updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
   user            User      @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  USER
 }
