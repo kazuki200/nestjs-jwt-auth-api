@@ -7,6 +7,9 @@ import { PublicModule } from './modules/public/public.module';
 import { AuthenticationModule } from './modules/authentication/authentication.module';
 import { CryptoModule } from './modules/crypto/crypto.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './modules/authentication/guards/jwt-auth.guard';
+import { RoleGuard } from './modules/authorization/guards/role.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -21,6 +24,15 @@ import { PrismaModule } from './modules/prisma/prisma.module';
     PrismaModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RoleGuard,
+    },
+  ],
 })
 export class AppModule {}

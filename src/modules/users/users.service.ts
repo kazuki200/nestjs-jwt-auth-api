@@ -8,8 +8,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CryptoService } from '../crypto/crypto.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserResponseDto } from './dto/response-user.dto';
 import { Prisma } from '@prisma/client';
+import { FindDto } from 'src/shared/dto/find.dto';
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger('UserService');
@@ -19,7 +19,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async create(dto: CreateUserDto): Promise<UserResponseDto> {
+  async create(dto: CreateUserDto) {
     const hashedPassword = await this.cryptoService.generateHash(dto.password);
     try {
       const newUser = await this.prisma.user.create({
@@ -39,11 +39,32 @@ export class UsersService {
     }
   }
 
-  async findAll(): Promise<UserResponseDto[] | undefined> {
+  async findAll(findDto: FindDto) {
     try {
-      const users = await this.prisma.user.findMany();
+      const { page = 1, limit = 10 } = findDto;
+      const skip = (page - 1) * limit;
 
-      return users;
+      // 並行してデータ取得と総数を取得
+      const [users, total] = await Promise.all([
+        this.prisma.user.findMany({
+          skip,
+          take: limit,
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        this.prisma.user.count(),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data: users,
+        total,
+        page,
+        limit,
+        totalPages,
+      };
     } catch (error) {
       this.prismaErrorHandler(error, 'GET');
       this.logger.error(`GET: error: ${error}`);
@@ -51,10 +72,7 @@ export class UsersService {
     }
   }
 
-  async findOne(
-    field: 'id' | 'email',
-    value: string,
-  ): Promise<UserResponseDto> {
+  async findOne(field: 'id' | 'email', value: string | number) {
     const where = { [field]: value } as unknown as Prisma.UserWhereUniqueInput;
     try {
       const user = await this.prisma.user.findUniqueOrThrow({ where });
@@ -68,9 +86,9 @@ export class UsersService {
 
   async update(
     field: 'id' | 'email',
-    value: string,
+    value: string | number,
     updateUserDto: UpdateUserDto,
-  ): Promise<any> {
+  ) {
     // パスワードが更新された場合、ハッシュ化
     let hashedPassword: string | undefined;
     if (updateUserDto.password) {
@@ -93,7 +111,7 @@ export class UsersService {
     }
   }
 
-  async remove(field: 'id' | 'email', value: string) {
+  async remove(field: 'id' | 'email', value: string | number) {
     const where = { [field]: value } as unknown as Prisma.UserWhereUniqueInput;
     try {
       const user = await this.prisma.user.delete({ where });
@@ -108,7 +126,7 @@ export class UsersService {
   private prismaErrorHandler = (
     error: any,
     method: string,
-    value: string | null = null,
+    value: string | number | null = null,
   ) => {
     if (error.code === 'P2002') {
       this.logger.warn(`${method}: ユーザーは既に存在します: ${value}`);

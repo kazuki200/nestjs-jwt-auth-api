@@ -9,8 +9,8 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Role } from '@prisma/client';
-import { UserResponseDto } from './dto/response-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FindDto } from 'src/shared/dto/find.dto';
 
 describe('UsersService', () => {
   let usersService: UsersService;
@@ -30,6 +30,7 @@ describe('UsersService', () => {
               findUniqueOrThrow: jest.fn(),
               update: jest.fn(),
               delete: jest.fn(),
+              count: jest.fn(),
             },
           },
         },
@@ -158,7 +159,7 @@ describe('UsersService', () => {
 
   describe('findAll', () => {
     it('全てのユーザーを返すこと', async () => {
-      const mockUsers: UserResponseDto[] = [
+      const mockUsers = [
         {
           id: '1',
           email: 'test@example.com',
@@ -180,19 +181,65 @@ describe('UsersService', () => {
           verifiedAt: null,
         },
       ];
+      const findDto: FindDto = {
+        limit: 2,
+        page: 1,
+      };
       (prismaService.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
+      (prismaService.user.count as jest.Mock).mockResolvedValue(10);
 
-      const result = await usersService.findAll();
+      const result = await usersService.findAll(findDto);
 
-      expect(result).toEqual(mockUsers);
+      // 期待される結果
+      expect(result).toEqual({
+        data: mockUsers,
+        total: 10,
+        page: 1,
+        limit: 2,
+        totalPages: 5,
+      });
+
+      // findManyが正しいパラメータで呼ばれたことを確認
+      expect(prismaService.user.findMany).toHaveBeenCalledWith({
+        skip: 0, // (page - 1) * limit
+        take: 2,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    });
+
+    it('データが存在しない場合、空の配列を返すこと', async () => {
+      const findDto: FindDto = {
+        limit: 2,
+        page: 1,
+      };
+
+      (prismaService.user.findMany as jest.Mock).mockResolvedValue([]);
+      (prismaService.user.count as jest.Mock).mockResolvedValue(0);
+
+      const result = await usersService.findAll(findDto);
+
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 2,
+        totalPages: 0,
+      });
     });
 
     it('Prismaが予期せぬエラーをスローした場合、InternalServerErrorExceptionをスローすること', async () => {
+      const findDto: FindDto = {
+        limit: 2,
+        page: 1,
+      };
+
       (prismaService.user.findMany as jest.Mock).mockRejectedValue(
         new Error('予期せぬデータベースエラー'),
       );
 
-      await expect(usersService.findAll()).rejects.toThrow(
+      await expect(usersService.findAll(findDto)).rejects.toThrow(
         InternalServerErrorException,
       );
 

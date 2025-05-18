@@ -7,7 +7,6 @@ model User {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   deletedAt  DateTime?
-  form       Form[]
   profile    UserProfile?
   role       Role         @default(USER)
 }
