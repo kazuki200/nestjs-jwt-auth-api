@@ -18,7 +18,6 @@ describe('UsersController', () => {
       controllers: [UsersController],
       providers: [
         JwtAuthGuard,
-
         {
           provide: UsersService,
           useValue: {

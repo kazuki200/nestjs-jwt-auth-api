@@ -124,7 +124,7 @@ export class UsersService {
   }
 
   private prismaErrorHandler = (
-    error: any,
+    error: Prisma.PrismaClientKnownRequestError,
     method: string,
     value: string | number | null = null,
   ) => {

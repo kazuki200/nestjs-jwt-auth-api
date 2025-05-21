@@ -15,10 +15,16 @@ import { Roles } from '../authorization/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { FindDto } from '../../shared/dto/find.dto';
 import { ResourceOwner } from '../authorization/decorators/resource-owner.decorator';
-import { ApiOkResponse, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { UserResponseDto } from './dto/response-user.dto';
 import { DeleteUserResponseDto } from './dto/response-user-delete';
 
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

@@ -1,20 +1,12 @@
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { CryptoService } from '../crypto/crypto.service';
+import { PrismaModule } from '../prisma/prisma.module';
+import { CryptoModule } from '../crypto/crypto.module';
 @Module({
   controllers: [UsersController],
-  providers: [
-    UsersService,
-    {
-      provide: CryptoService,
-      useValue: {
-        generateHash: jest.fn(),
-        compareHash: jest.fn(),
-        generateSha256HashBase64: jest.fn(),
-      },
-    },
-  ],
+  imports: [PrismaModule, CryptoModule],
+  providers: [UsersService],
   exports: [UsersService],
 })
 export class UsersModule {}

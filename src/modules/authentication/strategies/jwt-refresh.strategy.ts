@@ -28,6 +28,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
 
     return {
       attributes: { id: payload.sub, role: payload.role },
+      // 秒をミリ秒に変換
       refreshTokenExpiresAt: new Date(payload.exp * 1000),
     };
   }

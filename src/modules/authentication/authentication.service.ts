@@ -1,33 +1,47 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthenticationDto } from './dto/create-authentication.dto';
-import { UpdateAuthenticationDto } from './dto/update-authentication.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
-
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { CryptoService } from '../crypto/crypto.service';
+import { Prisma } from '@prisma/client';
+import { Response } from 'express';
+import { AuthRefreshTokenService } from './auth-refresh-token.service';
 @Injectable()
 export class AuthenticationService {
-  register(registerUserDto: RegisterUserDto) {
-    return {
-      access_token: '1234567890',
-    };
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly cryptoService: CryptoService,
+    private readonly authRefreshTokenService: AuthRefreshTokenService,
+  ) {}
+
+  async validateUser(email: string, password: string) {
+    try {
+      const user = await this.usersService.findOne('email', email);
+
+      if (!user) {
+        return null;
+      }
+
+      const isMatch = await this.cryptoService.compareHash(
+        password,
+        user.password,
+      );
+
+      if (isMatch) {
+        return user;
+      }
+      return null;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        return null;
+      }
+      throw error;
+    }
   }
 
-  create(createAuthenticationDto: CreateAuthenticationDto) {
-    return 'This action adds a new authentication';
-  }
+  async login(res: Response, user?: Express.User) {
+    if (!user?.id) {
+      throw new InternalServerErrorException('ユーザーが見つかりません');
+    }
 
-  findAll() {
-    return `This action returns all authentication`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} authentication`;
-  }
-
-  update(id: number, updateAuthenticationDto: UpdateAuthenticationDto) {
-    return `This action updates a #${id} authentication`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} authentication`;
+    return this.authRefreshTokenService.generateTokenPair(user, res);
   }
 }

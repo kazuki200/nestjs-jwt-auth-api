@@ -1,24 +1,34 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './modules/users/users.module';
-import { FormsModule } from './modules/forms/forms.module';
-import { ResponsesModule } from './modules/responses/responses.module';
-import { PublicModule } from './modules/public/public.module';
 import { AuthenticationModule } from './modules/authentication/authentication.module';
 import { CryptoModule } from './modules/crypto/crypto.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/authentication/guards/jwt-auth.guard';
 import { RoleGuard } from './modules/authorization/guards/role.guard';
+import configuration from './config/env/configuration';
+import { ThrottlerModule } from '@nestjs/throttler';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      cache: true,
+      load: [configuration],
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 50,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 1000,
+      },
+    ]),
     UsersModule,
-    FormsModule,
-    ResponsesModule,
-    PublicModule,
     AuthenticationModule,
     CryptoModule,
     PrismaModule,
