@@ -6,8 +6,12 @@ import { CryptoService } from '../crypto/crypto.service';
 import { AuthRefreshTokenService } from './auth-refresh-token.service';
 import { Response } from 'express';
 import { Role, User } from '@prisma/client';
-import { InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { cookieConfig } from '../../shared/constants/cookies';
+import { RegisterUserDto } from './dto/register-user.dto';
 
 describe('AuthenticationController', () => {
   let controller: AuthenticationController;
@@ -66,6 +70,39 @@ describe('AuthenticationController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('register', () => {
+    it('ユーザー登録が成功する', async () => {
+      const mockUserDto: RegisterUserDto = {
+        email: 'test@test.com',
+        password: 'password',
+        passwordconf: 'password',
+        name: 'test',
+      };
+      const expectedTokenPair = { access_token: 'mock-token' };
+
+      jest.spyOn(authService, 'register').mockResolvedValue(expectedTokenPair);
+      const result = await controller.register(mockUserDto, mockResponse);
+      expect(result).toEqual(expectedTokenPair);
+    });
+
+    it('すでにユーザーが存在する場合はエラーをスローする', async () => {
+      const mockUserDto: RegisterUserDto = {
+        email: 'test@test.com',
+        password: 'password',
+        passwordconf: 'password',
+        name: 'test',
+      };
+
+      jest
+        .spyOn(authService, 'register')
+        .mockRejectedValue(new BadRequestException('ユーザーは既に存在します'));
+
+      await expect(
+        controller.register(mockUserDto, mockResponse),
+      ).rejects.toThrow('ユーザーは既に存在します');
+    });
   });
 
   describe('login', () => {

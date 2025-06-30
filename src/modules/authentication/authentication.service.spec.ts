@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthenticationService } from './authentication.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../crypto/crypto.service';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, Role, User } from '@prisma/client';
 import { UsersService } from '../users/users.service';
 import { AuthRefreshTokenService } from './auth-refresh-token.service';
 import { Response } from 'express';
+import { RegisterUserDto } from './dto/register-user.dto';
+import { BadRequestException } from '@nestjs/common';
 
 describe('AuthenticationService', () => {
   let authService: AuthenticationService;
@@ -21,6 +23,7 @@ describe('AuthenticationService', () => {
           provide: UsersService,
           useValue: {
             findOne: jest.fn(),
+            create: jest.fn(),
           },
         },
         {
@@ -130,6 +133,60 @@ describe('AuthenticationService', () => {
         mockObject.password,
       );
       expect(user).toBeNull();
+    });
+  });
+
+  describe('register', () => {
+    const mockResponse = {
+      cookie: jest.fn(),
+    } as unknown as Response;
+
+    it('ユーザー登録ができる', async () => {
+      const mockData = {
+        access_token: 'mock-access-token',
+      };
+      const mockUserDto: RegisterUserDto = {
+        email: 'test@test.com',
+        password: 'password',
+        passwordconf: 'password',
+        name: 'test',
+      };
+
+      const mockResult: Omit<User, 'password'> = {
+        id: 'abc',
+        email: mockUserDto.email,
+        name: mockUserDto.name,
+        role: Role.USER,
+        verifiedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      };
+
+      (usersService.create as jest.Mock).mockResolvedValue(mockResult);
+      (
+        authRefreshTokenService.generateTokenPair as jest.Mock
+      ).mockResolvedValue(mockData);
+
+      const result = await authService.register(mockUserDto, mockResponse);
+      expect(result).toEqual(mockData);
+    });
+
+    it('すでにユーザーが存在する場合はエラーをスローする', async () => {
+      const mockUserDto: RegisterUserDto = {
+        email: 'test@test.com',
+        password: 'password',
+        passwordconf: 'password',
+        name: 'test',
+      };
+
+      (usersService.create as jest.Mock).mockRejectedValue(
+        new BadRequestException('ユーザーは既に存在します'),
+      );
+
+      await expect(
+        authService.register(mockUserDto, mockResponse),
+      ).rejects.toThrow('ユーザーは既に存在します');
     });
   });
 

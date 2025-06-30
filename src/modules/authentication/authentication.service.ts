@@ -1,9 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { CryptoService } from '../crypto/crypto.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { Response } from 'express';
 import { AuthRefreshTokenService } from './auth-refresh-token.service';
+import { RegisterUserDto } from './dto/register-user.dto';
 @Injectable()
 export class AuthenticationService {
   constructor(
@@ -35,6 +36,14 @@ export class AuthenticationService {
       }
       throw error;
     }
+  }
+
+  async register(userDto: RegisterUserDto, res: Response) {
+    const user = await this.usersService.create({
+      ...userDto,
+      role: Role.USER,
+    });
+    return this.authRefreshTokenService.generateTokenPair(user, res);
   }
 
   async login(res: Response, user?: Express.User) {

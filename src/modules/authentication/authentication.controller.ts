@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   InternalServerErrorException,
@@ -22,6 +23,7 @@ import {
   cookieConfig,
   extractRefreshTokenFromCookies,
 } from '../../shared/constants/cookies';
+import { RegisterUserDto } from './dto/register-user.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -31,6 +33,16 @@ export class AuthenticationController {
     private authenticationService: AuthenticationService,
     private authRefreshTokenService: AuthRefreshTokenService,
   ) {}
+
+  @ApiBody({ type: RegisterUserDto })
+  @Public()
+  @Post('register')
+  register(
+    @Body() userDto: RegisterUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authenticationService.register(userDto, res);
+  }
 
   @Throttle({
     short: { limit: 2, ttl: 1000 },
